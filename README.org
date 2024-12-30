@@ -47,9 +47,6 @@ This command will:
 * Features
 
 - **Dynamic Activation**: Automatically adjusts to buffer changes.
-- **UUID Matching**: Uses regex to match UUIDs in references and locations.
-- **Cross-Buffer Linking**: Searches across all buffers and files in your home directory.
-- **Error Handling**: Robust error management using custom error structures.
 
 * Dependencies
 
