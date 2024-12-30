@@ -92,7 +92,7 @@ Thanks to the Emacs community for inspiration and testing.
 
 Feel free to contribute by forking this repository on GitHub and submitting pull requests. For bugs or feature requests, please use the issue tracker at:
 
-- [[https://github.com/your-username/your-package][GitHub Repository]]
+- [[https://github.com/phf-1/locs-and-refs][GitHub Repository]]
 
 * Changelog
 
