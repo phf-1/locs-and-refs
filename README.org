@@ -1,0 +1,101 @@
+#+TITLE: xf79-locs-and-refs
+#+AUTHOR: Pierre-Henry FRÖHRING
+#+EMAIL: contact@phfrohring.com
+#+OPTIONS: toc:t num:nil
+
+* Introduction
+
+This Emacs package, named =xf79-locs-and-refs=, enhances text buffers by making references and locations interactive. When activated, clicking on a reference or location will open a new buffer listing all matching references or locations across your home directory's buffers and files.
+
+- **TextBuffer**: A buffer in either =text-mode= or =prog-mode=.
+- **Reference**: Identified by the pattern =(ref <UUID>)=.
+- **Location**: Identified by the pattern =(loc <UUID>)=.
+
+* Installation
+
+** MELPA
+
+If you have =package.el= configured to use MELPA, you can simply:
+
+#+BEGIN_SRC emacs-lisp
+M-x package-install RET xf79-locs-and-refs RET
+#+END_SRC
+
+** Manual Installation
+
+1. Download the =xf79-locs-and-refs.el= file into your Emacs load-path.
+2. Add the following to your =.emacs= or =init.el=:
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path "/path/to/xf79-locs-and-refs.el")
+(require 'xf79-locs-and-refs)
+#+END_SRC
+
+* Usage
+
+To enable the interactive features for references and locations:
+
+#+BEGIN_SRC emacs-lisp
+(locs-and-refs-mode 1)
+#+END_SRC
+
+This command will:
+
+- Make all text matching reference or location patterns clickable.
+- Trigger a search when clicked, showing matches in a new buffer.
+
+* Features
+
+- **Dynamic Activation**: Automatically adjusts to buffer changes.
+- **UUID Matching**: Uses regex to match UUIDs in references and locations.
+- **Cross-Buffer Linking**: Searches across all buffers and files in your home directory.
+- **Error Handling**: Robust error management using custom error structures.
+
+* Dependencies
+
+- Emacs version 24.4 or later
+- Ripgrep (rg) for efficient file searching
+
+Make sure Ripgrep is installed on your system:
+
+#+BEGIN_SRC shell
+# On macOS with Homebrew
+brew install ripgrep
+
+# On Ubuntu
+sudo apt-get install ripgrep
+#+END_SRC
+
+* Configuration
+
+By default, the mode is global, but you can make it buffer-local if needed:
+
+#+BEGIN_SRC emacs-lisp
+(with-current-buffer some-buffer
+  (locs-and-refs-mode 1))
+#+END_SRC
+
+* Limitations
+
+- The package assumes you have =ripgrep= installed. If not, it will raise an error.
+- Performance might degrade with very large files or an excessive number of matches.
+
+* License
+
+This package is released under the GNU General Public License version 3 or any later version.
+
+* Acknowledgments
+
+Thanks to the Emacs community for inspiration and testing.
+
+* Contributions
+
+Feel free to contribute by forking this repository on GitHub and submitting pull requests. For bugs or feature requests, please use the issue tracker at:
+
+- [[https://github.com/your-username/your-package][GitHub Repository]]
+
+* Changelog
+
+** Version 0.1
+   - Initial release
+   - Basic functionality for making references and locations interactive.
