@@ -3,8 +3,8 @@
 ;; Copyright (C) 2024 Pierre-Henry FRÖHRING
 
 ;; Author: Pierre-Henry FRÖHRING <contact@phfrohring.com>
-;; Version: 0.1
-;; Package-Requires: ((emacs "24.4"))
+;; Package-Version: 0.1
+;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/your-username/your-package
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 
 ;; This file is NOT part of GNU Emacs.
 
-;; Commentary:
+;;; Commentary:
 
 ;; This mode makes both references and locations "active" in all TextBuffers. Clicking an active
 ;; reference or location opens a buffer listing all buffers and files in the home directory
@@ -24,7 +24,9 @@
 ;; - A **Reference** is a string matching the regex `(rx "(ref +" uuid ")")`.
 ;; - A **Location** is a string matching the regex `(rx "(loc +" uuid ")")`.
 
-;; Code:
+;;; Code:
+
+(require 'cl-lib)
 
 (cl-defstruct (lar--Error
                (:constructor lar--make-error)
@@ -86,8 +88,10 @@ Return the interval if valid, or an error if not."
   (funcall (lar--Interval-use (lambda (b i j) (with-current-buffer b (buffer-substring-no-properties i j)))) interval))
 
 (defun lar--Interval-make-clickable-private (callback buffer start end)
-  "Make the interval from START to END in BUFFER clickable, calling CALLBACK when clicked.
-The overlay will evaporate after use, and previous overlays are removed."
+  "Make the interval from START to END in BUFFER clickable.
+
+When clicked, it calls CALLBACK. The overlay will evaporate after
+use, and previous overlays are removed."
   (with-current-buffer buffer
     ;; Remove any existing overlays at this location
     (dolist (ov (overlays-in start end))
@@ -145,7 +149,7 @@ The overlay will evaporate after use, and previous overlays are removed."
   buffer)
 
 (defun lar--TextBuffer-mk (b)
-  "Create a TextBuffer from BUFFER B if its mode derives from text-mode or prog-mode."
+  "Create a TextBuffer from BUFFER B if its mode derives from `text-mode' or `prog-mode'."
   (with-current-buffer b
     (if (or (derived-mode-p 'text-mode)
             (derived-mode-p 'prog-mode))
@@ -171,7 +175,7 @@ The overlay will evaporate after use, and previous overlays are removed."
     (lar--search-display regex matches)))
 
 (defun lar--search-display (regex matches)
-  "Display search results for REGEX in a new buffer with clickable lines."
+  "Display MATCHES for REGEX in a new buffer with clickable lines."
   (let ((results-buffer (get-buffer-create "*locs-and-refs Search Results*")))
     (with-current-buffer results-buffer
       (setq buffer-read-only nil)
@@ -335,7 +339,7 @@ The overlay will evaporate after use, and previous overlays are removed."
   text-buffer locations references)
 
 (defun lar--LiveTextBuffer-mk (text-buffer locs refs)
-  "Create a LiveTextBuffer from TEXT-BUFFER, LOCATIONS, and REFERENCES."
+  "Create a LiveTextBuffer from TEXT-BUFFER, locations LOCS, and references REFS."
   (if (not (lar--TextBuffer-p text-buffer))
       (lar--Error-mk "text-buffer is not a TextBuffer.")
     (let ((buffer (lar--TextBuffer-buffer text-buffer))
@@ -384,7 +388,7 @@ The overlay will evaporate after use, and previous overlays are removed."
   "Handle the creation of a new buffer."
   (lar--membrane `(created ,(current-buffer))))
 
-(defun lar--mutated (a b c)
+(defun lar--mutated (_a _b _c)
   "Handle buffer mutation."
   (lar--membrane `(mutated ,(current-buffer))))
 
@@ -403,7 +407,7 @@ The overlay will evaporate after use, and previous overlays are removed."
 (put 'lar--timer 'permanent-local t)
 
 (defun lar--membrane (message)
-  "Handle messages for buffer activation or mutation."
+  "Handle MESSAGE for buffer activation or mutation."
   (pcase message
     (`(,symbol ,buffer)
      (let ((text-buffer (lar--TextBuffer-mk buffer)))
@@ -421,14 +425,16 @@ The overlay will evaporate after use, and previous overlays are removed."
        (lar--membrane `(created ,buffer))))))
 
 (defun lar--check-ripgrep ()
+  "Check for the presence of ripgrep, else: signal the user."
   (unless (executable-find "rg")
-    (user-error "Ripgrep (rg) is not installed. Please install it to use this package.")))
+    (user-error "Ripgrep (rg) is not installed. Please install it to use this package")))
 
 (define-minor-mode locs-and-refs-mode
   "Minor mode for locs-and-refs package."
   :init-value nil
   :lighter " L&R"
   :keymap nil
+  :group 'convenience
   :global t
   (if locs-and-refs-mode
       (lar--activate)
