@@ -177,19 +177,16 @@ use, and previous overlays are removed."
       (while (re-search-forward "^.+$" nil t)
         (let* ((start (match-beginning 0))
                (end (match-end 0))
-               (ov (make-overlay start end))
-               (line (buffer-substring-no-properties start end))
-               (info (split-string line ":")))
+               (ov (make-overlay start end)))
           (overlay-put ov 'face 'link)
           (overlay-put ov 'mouse-face 'highlight)
           (overlay-put ov 'help-echo "Click to open")
           (overlay-put ov 'keymap
                        (let ((map (make-sparse-keymap)))
                          (define-key map [mouse-1]
-                                     (lambda (event)
+                                     (lambda (_event)
                                        (interactive "e")
-                                       (let* ((pos (posn-point (event-start event)))
-                                              (line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
+                                       (let* ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
                                               (info (split-string line ":")))
                                          (if (and (> (length info) 1) (string-match-p "^/.*$" (car info))) ; Check if it's a file path with line number
                                              (progn
@@ -243,7 +240,8 @@ use, and previous overlays are removed."
   interval uuid)
 
 (defun lar--Reference-mk (interval uuid)
-  "Create a reference from INTERVAL and UUID. Make the interval clickable to search for matching locations."
+  "Create a reference from INTERVAL and UUID.
+Make the interval clickable to search for matching locations."
   (lar--Interval-make-clickable interval
                                  (lambda ()
                                    (lar--search (rx "(loc" (+ " ") (literal uuid) ")"))))
@@ -262,10 +260,6 @@ use, and previous overlays are removed."
       ((cl-struct lar--Reference interval uuid)
        (funcall use interval uuid)))))
 
-(defun lar--Reference-rx ()
-  "Return the regex used for matching references."
-  lar--ref-rx)
-
 ;; Define regex for matching locations.
 (rx-define lar--loc-rx
   (seq "(loc" (1+ " ") (group lar--uuid-rx) ")"))
@@ -277,7 +271,8 @@ use, and previous overlays are removed."
   interval uuid)
 
 (defun lar--Location-mk (interval uuid)
-  "Create a location from INTERVAL and UUID. Make the interval clickable to search for matching references."
+  "Create a location from INTERVAL and UUID.
+Make the interval clickable to search for matching references."
   (lar--Interval-make-clickable interval
                                  (lambda ()
                                    (lar--search (rx "(ref" (+ " ") (literal uuid) ")"))))
@@ -295,10 +290,6 @@ use, and previous overlays are removed."
     (pcase location
       ((cl-struct lar--Location interval uuid)
        (funcall use interval uuid)))))
-
-(defun lar--Location-rx ()
-  "Return the regex used for matching locations."
-  lar--loc-rx)
 
 (cl-defstruct (lar--LiveTextBuffer
                (:constructor lar--make-live-text-buffer)
