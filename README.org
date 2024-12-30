@@ -5,7 +5,7 @@
 
 * Introduction
 
-This Emacs package, named =locs-and-refs=, enhances text buffers by making references and locations interactive. When activated, clicking on a reference or location will open a new buffer listing all matching references or locations across your home directory's buffers and files.
+This Emacs package, named =locs-and-refs=, enhances text buffers by making references and locations interactive. When activated, clicking on a reference or location will open a new buffer listing all matching references or locations across your buffers and home directory's files.
 
 - **TextBuffer**: A buffer in either =text-mode= or =prog-mode=.
 - **Reference**: Identified by the pattern =(ref <UUID>)=.
