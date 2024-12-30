@@ -3,7 +3,7 @@
 ;; Copyright (C) 2024 Pierre-Henry FRÖHRING
 
 ;; Author: Pierre-Henry FRÖHRING <contact@phfrohring.com>
-;; Package-Version: 0.1
+;; Package-Version: 0.2
 ;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/your-username/your-package
 
