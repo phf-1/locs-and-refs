@@ -1,11 +1,11 @@
-#+TITLE: xf79-locs-and-refs
+#+TITLE: locs-and-refs
 #+AUTHOR: Pierre-Henry FRÖHRING
 #+EMAIL: contact@phfrohring.com
 #+OPTIONS: toc:t num:nil
 
 * Introduction
 
-This Emacs package, named =xf79-locs-and-refs=, enhances text buffers by making references and locations interactive. When activated, clicking on a reference or location will open a new buffer listing all matching references or locations across your home directory's buffers and files.
+This Emacs package, named =locs-and-refs=, enhances text buffers by making references and locations interactive. When activated, clicking on a reference or location will open a new buffer listing all matching references or locations across your home directory's buffers and files.
 
 - **TextBuffer**: A buffer in either =text-mode= or =prog-mode=.
 - **Reference**: Identified by the pattern =(ref <UUID>)=.
@@ -18,17 +18,17 @@ This Emacs package, named =xf79-locs-and-refs=, enhances text buffers by making 
 If you have =package.el= configured to use MELPA, you can simply:
 
 #+BEGIN_SRC emacs-lisp
-M-x package-install RET xf79-locs-and-refs RET
+M-x package-install RET locs-and-refs RET
 #+END_SRC
 
 ** Manual Installation
 
-1. Download the =xf79-locs-and-refs.el= file into your Emacs load-path.
+1. Download the =locs-and-refs.el= file into your Emacs load-path.
 2. Add the following to your =.emacs= or =init.el=:
 
 #+BEGIN_SRC emacs-lisp
-(add-to-list 'load-path "/path/to/xf79-locs-and-refs.el")
-(require 'xf79-locs-and-refs)
+(add-to-list 'load-path "/path/to/locs-and-refs.el")
+(require 'locs-and-refs)
 #+END_SRC
 
 * Usage
