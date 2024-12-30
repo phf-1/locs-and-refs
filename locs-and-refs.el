@@ -71,18 +71,6 @@ Return the interval if valid, or an error if not."
       ((cl-struct lar--Interval buffer start end)
        (funcall func buffer start end)))))
 
-(defun lar--Interval-buffer (interval)
-  "Return the buffer associated with INTERVAL."
-  (funcall (lar--Interval-use (lambda (b i j) b)) interval))
-
-(defun lar--Interval-start (interval)
-  "Return the start position of INTERVAL."
-  (funcall (lar--Interval-use (lambda (b i j) i)) interval))
-
-(defun lar--Interval-end (interval)
-  "Return the end position of INTERVAL."
-  (funcall (lar--Interval-use (lambda (b i j) j)) interval))
-
 (defun lar--Interval-string (interval)
   "Return the string content of INTERVAL in its buffer."
   (funcall (lar--Interval-use (lambda (b i j) (with-current-buffer b (buffer-substring-no-properties i j)))) interval))
@@ -162,10 +150,6 @@ use, and previous overlays are removed."
     (pcase textbuffer
       ((cl-struct lar--TextBuffer buffer)
        (funcall func buffer)))))
-
-(defun lar--TextBuffer-buffer (textbuffer)
-  "Return the buffer associated with TEXTBUFFER."
-  (funcall (lar--TextBuffer-use (lambda (b) b)) textbuffer))
 
 (defun lar--search (regex)
   "Search for REGEX in buffers and files, presenting results in a new buffer."
@@ -278,14 +262,6 @@ use, and previous overlays are removed."
       ((cl-struct lar--Reference interval uuid)
        (funcall use interval uuid)))))
 
-(defun lar--Reference-interval (reference)
-  "Return the interval of REFERENCE."
-  (funcall (lar--Reference-use (lambda (interval uuid) interval)) reference))
-
-(defun lar--Reference-uuid (reference)
-  "Return the UUID of REFERENCE."
-  (funcall (lar--Reference-use (lambda (interval uuid) uuid)) reference))
-
 (defun lar--Reference-rx ()
   "Return the regex used for matching references."
   lar--ref-rx)
@@ -319,14 +295,6 @@ use, and previous overlays are removed."
     (pcase location
       ((cl-struct lar--Location interval uuid)
        (funcall use interval uuid)))))
-
-(defun lar--Location-interval (location)
-  "Return the interval of LOCATION."
-  (funcall (lar--Location-use (lambda (interval uuid) interval)) location))
-
-(defun lar--Location-uuid (location)
-  "Return the UUID of LOCATION."
-  (funcall (lar--Location-use (lambda (interval uuid) uuid)) location))
 
 (defun lar--Location-rx ()
   "Return the regex used for matching locations."
@@ -372,10 +340,6 @@ use, and previous overlays are removed."
     (pcase livetextbuffer
       ((cl-struct lar--LiveTextBuffer text-buffer locations references)
        (funcall func text-buffer locations references)))))
-
-(defun lar--LiveTextBuffer-text-buffer (livetextbuffer)
-  "Return the TextBuffer associated with LIVETEXTBUFFER."
-  (funcall (lar--LiveTextBuffer-use (lambda (tb locs refs) tb)) livetextbuffer))
 
 (defun lar--activate ()
   "Activate the locs-and-refs mechanism by initializing and setting up event handlers."
