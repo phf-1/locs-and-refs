@@ -1,98 +1,59 @@
-#+TITLE: locs-and-refs
+#+TITLE: Locs-and-Refs for Emacs
 #+AUTHOR: Pierre-Henry FRÖHRING
-#+EMAIL: contact@phfrohring.com
-#+OPTIONS: toc:t num:nil
 
-* Introduction
+* Overview
 
-This Emacs package, named =locs-and-refs=, enhances text buffers by making references and locations interactive. When activated, clicking on a reference or location will open a new buffer listing all matching references or locations across your buffers and home directory's files.
+This package, *locs-and-refs*, enhances your Emacs experience by making references and locations in text buffers interactive. It aims at providing a seamless way to navigate through buffers and files by clicking on UUID-based references or locations.
 
-- **TextBuffer**: A buffer in either =text-mode= or =prog-mode=.
-- **Reference**: Identified by the pattern =(ref <UUID>)=.
-- **Location**: Identified by the pattern =(loc <UUID>)=.
-
-* Installation
-
-** MELPA
-
-If you have =package.el= configured to use MELPA, you can simply:
-
-#+BEGIN_SRC emacs-lisp
-M-x package-install RET locs-and-refs RET
-#+END_SRC
-
-** Manual Installation
-
-1. Download the =locs-and-refs.el= file into your Emacs load-path.
-2. Add the following to your =.emacs= or =init.el=:
-
-#+BEGIN_SRC emacs-lisp
-(add-to-list 'load-path "/path/to/locs-and-refs.el")
-(require 'locs-and-refs)
-#+END_SRC
-
-* Usage
-
-To enable the interactive features for references and locations:
-
-#+BEGIN_SRC emacs-lisp
-(locs-and-refs-mode 1)
-#+END_SRC
-
-This command will:
-
-- Make all text matching reference or location patterns clickable.
-- Trigger a search when clicked, showing matches in a new buffer.
+- *Version*: 0.5
+- *License*: GNU General Public License v3 or later
+- *Emacs Requirement*: 27.1 or later
 
 * Features
 
-- **Dynamic Activation**: Automatically adjusts to buffer changes.
+- **Active References and Locations**: Turns strings formatted as `(ref +UUID)` or `(loc +UUID)` into clickable elements within text and programming buffers.
+- **Search Functionality**: When clicked, these active elements open a buffer displaying all matching references or locations across your filesystem and open buffers.
+- **Live Buffers**: Automatically updates references/locations when buffers are created or modified, ensuring they remain clickable.
 
-* Dependencies
+* Installation
 
-- Emacs version 24.4 or later
-- Ripgrep (rg) for efficient file searching
+1. **Manual Installation**:
+   - Download `locs-and-refs.el` from [[https://github.com/phf-1/locs-and-refs][GitHub]].
+   - Place `locs-and-refs.el` in your Emacs load path.
+   - Add `(require 'locs-and-refs)` to your `.emacs` or `init.el` file.
 
-Make sure Ripgrep is installed on your system:
+2. **Using MELPA** (once available):
+   - Ensure MELPA is in your package archives.
+   - Use `M-x package-install RET locs-and-refs RET`.
 
-#+BEGIN_SRC shell
-# On macOS with Homebrew
-brew install ripgrep
+* Usage
 
-# On Ubuntu
-sudo apt-get install ripgrep
-#+END_SRC
+- **Activate**: Use `M-x locs-and-refs-mode` to toggle the mode globally. When active, it will process existing buffers and new buffers to make them "live".
+
+- **Interaction**:
+  - Click on any location `(loc +UUID)` or reference `(ref +UUID)` in a buffer to see a list of all matching occurrences in both open buffers and files under $HOME.
 
 * Configuration
 
-By default, the mode is global, but you can make it buffer-local if needed:
+No specific configuration is required, but you can customize:
+- Ensure `ripgrep` is installed for filesystem search capabilities. The package checks for `rg` upon activation.
 
-#+BEGIN_SRC emacs-lisp
-(with-current-buffer some-buffer
-  (locs-and-refs-mode 1))
-#+END_SRC
+* Known Issues
 
-* Limitations
+- Requires `ripgrep` to be installed for file searching; if not available, an error message will be displayed.
 
-- The package assumes you have =ripgrep= installed. If not, it will raise an error.
-- Performance might degrade with very large files or an excessive number of matches.
+* Contributing
+
+Contributions are welcome! Please check out the project on [[https://github.com/phf-1/locs-and-refs][GitHub]] for how to contribute or report issues.
 
 * License
 
-This package is released under the GNU General Public License version 3 or any later version.
+This package is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
 
-* Acknowledgments
+* Acknowledgements
 
-Thanks to the Emacs community for inspiration and testing.
+Thank you to the Emacs community for inspiring features like this one. 
 
-* Contributions
+* Contact
 
-Feel free to contribute by forking this repository on GitHub and submitting pull requests. For bugs or feature requests, please use the issue tracker at:
-
-- [[https://github.com/phf-1/locs-and-refs][GitHub Repository]]
-
-* Changelog
-
-** Version 0.1
-   - Initial release
-   - Basic functionality for making references and locations interactive.
+For questions or feedback, reach out to Pierre-Henry FRÖHRING at <contact@phfrohring.com>.
