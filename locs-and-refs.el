@@ -20,66 +20,97 @@
 ;; reference or location opens a buffer listing all buffers and files in the home directory
 ;; containing matching references or locations.
 
-;; - A **TextBuffer** is a buffer derived from `text-mode` or `prog-mode`.
-;; - A **Reference** is a string matching the regex `(rx "(ref +" uuid ")")`.
-;; - A **Location** is a string matching the regex `(rx "(loc +" uuid ")")`.
+;; - A TextBuffer is a buffer derived from `text-mode` or `prog-mode`.
+;; - A Reference is a string matching the regex `(rx "(ref +" (literal uuid) ")")`.
+;; - A Location is a string matching the regex `(rx "(loc +" (literal uuid) ")")`.
 
 ;;; Code:
 
-(require 'cl-lib)
+(defun lar--is-a (x symbol)
+  "Given any object X, test if X has been built using a constructor of the type with tag SYMBOL."
+  (unless (atom symbol) (error "Variable symbol is not an Atom"))
+  (eq (car-safe x) symbol))
 
-(cl-defstruct (lar--Error
-               (:constructor lar--make-error)
-               (:copier nil))
-  "Structure representing an error with a message."
-  message)
+(defconst lar--error-tag :error
+  "The tag associated with the type Error.")
 
-(defun lar--Error-mk (msg)
-  "Create an error structure with the given message MSG."
-  (lar--make-error :message (or msg "")))
+(defun lar--error (msg)
+  "An error has a message MSG."
+  (unless (stringp msg) (error "Variable msg is not a String"))
+  (list lar--error-tag msg))
 
-(cl-defstruct (lar--Interval
-               (:constructor lar--make-interval)
-               (:copier nil))
-  "Structure representing an interval in a buffer."
-  buffer start end)
+(defun lar--error-p (x)
+  "Test if X is an error."
+  (lar--is-a x lar--error-tag))
 
-(defun lar--Interval-mk (b i j)
-  "Create an interval from BUFFER B, START position I, and END position J.
-Return the interval if valid, or an error if not."
+(defun lar--error-use (func)
+  "Define how to build function defined on errors.
+FUNC is a function that takes the error message as an input."
+  (lambda (err)
+    (pcase err
+      ((and `(,tag ,msg) (guard (eq tag lar--error-tag)))
+       (funcall func msg))
+      (_ (error "Variable err is not an Error")))))
+
+(defun lar--error-message (err)
+  "Return the message associated with the error ERR."
+  (funcall (lar--error-use (lambda (msg) msg)) err))
+
+(defconst lar--interval-tag :interval
+  "The tag associated with the type Interval.")
+
+(defun lar--interval (buffer start end)
+  "An interval represents a contiguous sequence of characters from START to END in BUFFER."
+  (unless (bufferp buffer) (error "Variable buffer is not a Buffer"))
+  (unless (integerp start) (error "Variable start is not an Integer"))
+  (unless (integerp end) (error "Variable end is not an Integer"))
   (let (err)
     (setq err
           (condition-case err
               (progn
-                (or (bufferp b) (error "b is not a buffer"))
-                (with-current-buffer b
+                (with-current-buffer buffer
                   (let ((min (point-min))
                         (max (point-max)))
-                    (or (and (<= min i) (<= i j)) (error "i is out of range"))
-                    (or (<= j max) (error "j is out of range")))))
+                    (unless (and (<= min start) (<= start end)) (error "Variable start is out of range"))
+                    (unless (<= end max) (error "Variable end is out of range")))))
             (error
-             (lar--Error-mk (cadr err)))))
-
-    (if (lar--Error-p err)
+             (lar--error (cadr err)))))
+    (if (lar--error-p err)
         err
-      (lar--make-interval :buffer b :start i :end j))))
+      (list lar--interval-tag buffer start end))))
 
-(defun lar--Interval-use (func)
-  "Apply FUNC to the buffer, start, and end of an INTERVAL."
+(defun lar--interval-p (interval)
+  "Test if INTERVAL is an Interval structure."
+  (lar--is-a interval lar--interval-tag))
+
+(defun lar--interval-use (func)
+  "Define how to build function defined on intervals.
+FUNC takes the message of the arror as input."
   (lambda (interval)
     (pcase interval
-      ((cl-struct lar--Interval buffer start end)
-       (funcall func buffer start end)))))
+      ((and `(,tag ,buffer ,start ,end) (guard (eq tag lar--interval-tag)))
+       (funcall func buffer start end))
+      (_ (error "Variable interval is not an Interval")))))
 
-(defun lar--Interval-string (interval)
-  "Return the string content of INTERVAL in its buffer."
-  (funcall (lar--Interval-use (lambda (b i j) (with-current-buffer b (buffer-substring-no-properties i j)))) interval))
+(defun lar--interval-buffer (interval)
+  "Return the buffer associated with INTERVAL."
+  (funcall (lar--interval-use (lambda (buffer _start _end) buffer)) interval))
 
-(defun lar--Interval-make-clickable-private (callback buffer start end)
-  "Make the interval from START to END in BUFFER clickable.
+(defun lar--interval-start (interval)
+  "Return the start position associated with INTERVAL."
+  (funcall (lar--interval-use (lambda (_buffer start _end) start)) interval))
 
-When clicked, it calls CALLBACK. The overlay will evaporate after
-use, and previous overlays are removed."
+(defun lar--interval-end (interval)
+  "Return the end position associated with INTERVAL."
+  (funcall (lar--interval-use (lambda (_buffer _start end) end)) interval))
+
+(defun lar--interval-string (interval)
+  "Return the string associated with INTERVAL."
+  (funcall (lar--interval-use (lambda (buffer start end) (with-current-buffer buffer (buffer-substring-no-properties start end)))) interval))
+
+(defun lar--interval-make-clickable-private (callback buffer start end)
+  "Make the region inside START and END of BUFFER clickable.
+After a click, CALLBACK is called without arguments."
   (with-current-buffer buffer
     ;; Remove any existing overlays at this location
     (dolist (ov (overlays-in start end))
@@ -91,30 +122,24 @@ use, and previous overlays are removed."
       (overlay-put overlay 'face '(:underline t))
       (overlay-put overlay 'mouse-face 'highlight)
       (overlay-put overlay 'help-echo "Click to activate")
-      (overlay-put overlay 'evaporate t)
+      (overlay-put overlay 'clickable t)
       (overlay-put overlay 'keymap
                    (let ((map (make-sparse-keymap)))
                      (define-key map [mouse-1]
-                                 (lambda (event)
+                                 (lambda (_event)
                                    (interactive "e")
-                                   (let ((ov (car (overlays-at (posn-point (event-start event)))))
-                                         (win (posn-window (event-start event))))
-                                     (when (and ov (overlay-get ov 'clickable))
-                                       (with-selected-window win
-                                         (save-excursion
-                                           (goto-char (overlay-start ov))
-                                           (funcall callback)))))))
+                                   (funcall callback)))
                      map))
-      (overlay-put overlay 'clickable t)
       overlay)))
 
-(defun lar--Interval-make-clickable (interval callback)
-  "Make INTERVAL clickable by applying CALLBACK when clicked."
+(defun lar--interval-make-clickable (interval callback)
+  "Make INTERVAL clickable.
+After a click on INTERVAL, CALLBACK is called without arguments."
   (let (add-overlay)
     (setq add-overlay
-          (lar--Interval-use
+          (lar--interval-use
            (lambda (buffer start end)
-             (lar--Interval-make-clickable-private callback buffer start end))))
+             (lar--interval-make-clickable-private callback buffer start end))))
     (funcall add-overlay interval)))
 
 ;; Define a regular expression for matching UUIDs.
@@ -130,26 +155,36 @@ use, and previous overlays are removed."
         "-"
         (= 12 (any hex)))))
 
-(cl-defstruct (lar--TextBuffer
-               (:constructor lar--make-text-buffer)
-               (:copier nil))
-  "Structure representing a text buffer."
-  buffer)
+(defconst lar--text-buffer-tag :text-buffer
+  "The tag associated with the type TextBuffer.")
 
-(defun lar--TextBuffer-mk (b)
-  "Create a TextBuffer from BUFFER B if its mode derives from `text-mode' or `prog-mode'."
-  (with-current-buffer b
-    (if (or (derived-mode-p 'text-mode)
-            (derived-mode-p 'prog-mode))
-        (lar--make-text-buffer :buffer b)
-      (lar--Error-mk "Buffer's major mode does not derive from text-mode or prog-mode"))))
+(defun lar--text-buffer (buffer)
+  "A TextBuffer represents a BUFFER that is not killed and derives from `text-mode' or `prog-mode'."
+  (unless (bufferp buffer) (error "Variable buffer is not a Buffer"))
+  (if (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (if (or (derived-mode-p 'text-mode)
+                (derived-mode-p 'prog-mode))
+            (list lar--text-buffer-tag buffer)
+          (lar--error "Buffer's major mode does not derive from text-mode or prog-mode")))
+    (lar--error "Buffer has been killed")))
 
-(defun lar--TextBuffer-use (func)
-  "Apply FUNC to the buffer of a TextBuffer."
-  (lambda (textbuffer)
-    (pcase textbuffer
-      ((cl-struct lar--TextBuffer buffer)
-       (funcall func buffer)))))
+(defun lar--text-buffer-p (x)
+  "Test if X is a TextBuffer."
+  (lar--is-a x lar--text-buffer-tag))
+
+(defun lar--text-buffer-use (func)
+  "Define how to build function defined on text buffers.
+FUNC is a function that takes the text-buffer's buffer as input."
+  (lambda (text-buffer)
+    (pcase text-buffer
+      ((and `(,tag ,buffer) (guard (eq tag lar--text-buffer-tag)))
+       (funcall func buffer))
+      (_ (error "Variable text-buffer is not a TextBuffer")))))
+
+(defun lar--text-buffer-buffer (text-buffer)
+  "Return the buffer associated with TEXT-BUFFER."
+  (funcall (lar--text-buffer-use (lambda (buffer) buffer)) text-buffer))
 
 (defun lar--search (regex)
   "Search for REGEX in buffers and files, presenting results in a new buffer."
@@ -160,6 +195,7 @@ use, and previous overlays are removed."
 
 (defun lar--search-display (regex matches)
   "Display MATCHES for REGEX in a new buffer with clickable lines."
+  (unless (listp matches) (error "Variable matches is not a List"))
   (let ((results-buffer (get-buffer-create "*locs-and-refs Search Results*")))
     (with-current-buffer results-buffer
       (setq buffer-read-only nil)
@@ -229,81 +265,79 @@ use, and previous overlays are removed."
         (forward-line 1)))
     matches))
 
-;; Define regex for matching references.
-(rx-define lar--ref-rx
-  (seq "(ref" (1+ " ") (group lar--uuid-rx) ")"))
+(defmacro lar--bookmark-rx (bookmark-type)
+  "Define a `rx' named lar--<BOOKMARK-TYPE>-rx."
+  `(rx-define ,(intern (concat "lar--" bookmark-type "-rx"))
+     (seq ,(concat "(" bookmark-type) (1+ " ") (group lar--uuid-rx) ")")))
 
-(cl-defstruct (lar--Reference
-               (:constructor lar--make-reference)
-               (:copier nil))
-  "Structure representing a reference in a buffer."
-  interval uuid)
+(defmacro lar--bookmark-tag (bookmark-type)
+  "Define the tag associated with the type named BOOKMARK-TYPE."
+  `(defconst ,(intern (concat "lar--" bookmark-type "-tag"))
+     ,(intern (concat ":" bookmark-type))))
 
-(defun lar--Reference-mk (interval uuid)
-  "Create a reference from INTERVAL and UUID.
-Make the interval clickable to search for matching locations."
-  (lar--Interval-make-clickable interval
-                                 (lambda ()
-                                   (lar--search (rx "(loc" (+ " ") (literal uuid) ")"))))
+(defmacro lar--bookmark (name matching-name)
+  "Define a constructor for a bookmark type named NAME that matches MATCHING-NAME."
+  `(defun ,(intern (concat "lar--"  name)) (interval)
+     (unless (lar--interval-p interval) (error "Variable interval is not an Interval"))
+     (let (struct search)
+       (let* ((string (lar--interval-string interval))
+              (match (string-match (rx-to-string ',(intern (concat "lar--" name "-rx"))) string)))
+         (if match
+             (progn
+               (setq struct (list ,(intern (concat "lar--" name "-tag")) interval (match-string 1 string)))
+               (setq search (lambda ()
+                              (lar--search (rx ,(concat "(" matching-name) (+ " ") (literal (,(intern (concat "lar--"  name "-uuid")) struct)) ")"))))
+               (lar--interval-make-clickable interval search)
+               struct)
+           (lar--error "The string of the interval does not match the regex"))))))
 
-  (let* ((string (lar--Interval-string interval))
-         (match (string-match (rx-to-string 'lar--ref-rx) string)))
-    (if match
-        (let ((matched-uuid (match-string 1 string)))
-          (lar--make-reference :interval interval :uuid matched-uuid))
-      (lar--Error-mk "String does not match reference regex"))))
+(defmacro lar--bookmark-use (name)
+  "Define how to build a function defined on bookmarks named NAME."
+`(defun ,(intern (concat "lar--" name "-use")) (use)
+  (lambda (struct)
+    (pcase struct
+      ((and `(,tag ,interval ,uuid) (guard (eq tag ,(intern (concat "lar--" name "-tag")))))
+       (funcall use interval uuid))))))
 
-(defun lar--Reference-use (use)
-  "Apply USE to the interval and UUID of a Reference."
-  (lambda (reference)
-    (pcase reference
-      ((cl-struct lar--Reference interval uuid)
-       (funcall use interval uuid)))))
+(defmacro lar--bookmark-interval (name)
+  "Return the interval associated with an instance of bookmark named NAME."
+  `(defun ,(intern (concat "lar--" name "-interval")) (bookmark)
+  (funcall (,(intern (concat "lar--" name "-use")) (lambda (interval _uuid) interval)) bookmark)))
 
-;; Define regex for matching locations.
-(rx-define lar--loc-rx
-  (seq "(loc" (1+ " ") (group lar--uuid-rx) ")"))
+(defmacro lar--bookmark-uuid (name)
+  "Return the uuid associated with an instance of bookmark named NAME."
+  `(defun ,(intern (concat "lar--" name "-uuid")) (bookmark)
+  (funcall (,(intern (concat "lar--" name "-use")) (lambda (_interval uuid) uuid)) bookmark)))
 
-(cl-defstruct (lar--Location
-               (:constructor lar--make-location)
-               (:copier nil))
-  "Structure representing a location in a buffer."
-  interval uuid)
+;; Defines Location.
+;; A location may be refered to by a Reference.
+(lar--bookmark-rx "loc")
+(lar--bookmark-tag "loc")
+(lar--bookmark "loc" "ref")
+(lar--bookmark-use "loc")
+(lar--bookmark-interval "loc")
+(lar--bookmark-uuid "loc")
 
-(defun lar--Location-mk (interval uuid)
-  "Create a location from INTERVAL and UUID.
-Make the interval clickable to search for matching references."
-  (lar--Interval-make-clickable interval
-                                 (lambda ()
-                                   (lar--search (rx "(ref" (+ " ") (literal uuid) ")"))))
+;; Defines Reference.
+;; A reference may refer to a Location.
+(lar--bookmark-rx "ref")
+(lar--bookmark-tag "ref")
+(lar--bookmark "ref" "loc")
+(lar--bookmark-use "ref")
+(lar--bookmark-interval "ref")
+(lar--bookmark-uuid "ref")
 
-  (let* ((string (lar--Interval-string interval))
-         (match (string-match (rx-to-string 'lar--loc-rx) string)))
-    (if match
-        (let ((matched-uuid (match-string 1 string)))
-          (lar--make-location :interval interval :uuid matched-uuid))
-      (lar--Error-mk "String does not match location regex"))))
+(defconst lar--live-text-buffer-tag :live-text-buffer
+  "The tag associated with the type LiveTextBuffer.")
 
-(defun lar--Location-use (use)
-  "Apply USE to the interval and UUID of a Location."
-  (lambda (location)
-    (pcase location
-      ((cl-struct lar--Location interval uuid)
-       (funcall use interval uuid)))))
-
-(cl-defstruct (lar--LiveTextBuffer
-               (:constructor lar--make-live-text-buffer)
-               (:copier nil))
-  "Structure representing a live text buffer with locations and references."
-  text-buffer locations references)
-
-(defun lar--LiveTextBuffer-mk (text-buffer locs refs)
-  "Create a LiveTextBuffer from TEXT-BUFFER, locations LOCS, and references REFS."
-  (if (not (lar--TextBuffer-p text-buffer))
-      (lar--Error-mk "text-buffer is not a TextBuffer.")
-    (let ((buffer (lar--TextBuffer-buffer text-buffer))
-          (locations (copy-sequence locs))
-          (references (copy-sequence refs)))
+(defun lar--live-text-buffer (text-buffer)
+  "The LiveTextBuffer built from TEXT-BUFFER has all its locations and references clickable."
+  (unless (lar--text-buffer-p text-buffer) (error "Variable text-buffer is not a TextBuffer"))
+  (if (not (lar--text-buffer-p text-buffer))
+      (lar--error "Variable text-buffer is not a TextBuffer")
+    (let ((buffer (lar--text-buffer-buffer text-buffer))
+          (locations '())
+          (references '()))
       (with-current-buffer buffer
         (save-excursion
           (save-match-data
@@ -311,29 +345,55 @@ Make the interval clickable to search for matching references."
             (while (re-search-forward (rx-to-string 'lar--loc-rx) nil t)
               (let* ((start (match-beginning 0))
                      (end (match-end 0))
-                     (interval (lar--Interval-mk buffer start end))
-                     (uuid (match-string 1)))
-                (push (lar--Location-mk interval uuid) locations)))
+                     (interval (lar--interval buffer start end)))
+                (push (lar--loc interval) locations)))
             (goto-char (point-min))
             (while (re-search-forward (rx-to-string 'lar--ref-rx) nil t)
               (let* ((start (match-beginning 0))
                      (end (match-end 0))
-                     (interval (lar--Interval-mk buffer start end))
-                     (uuid (match-string 1)))
-                (push (lar--Reference-mk interval uuid) references))))))
-      (lar--make-live-text-buffer :text-buffer text-buffer
-                                 :locations (nreverse locations)
-                                 :references (nreverse references)))))
+                     (interval (lar--interval buffer start end)))
+                (push (lar--ref interval) references))))))
+      (list lar--live-text-buffer-tag text-buffer (nreverse locations) (nreverse references)))))
 
-(defun lar--LiveTextBuffer-use (func)
-  "Apply FUNC to the components of a LiveTextBuffer."
-  (lambda (livetextbuffer)
-    (pcase livetextbuffer
-      ((cl-struct lar--LiveTextBuffer text-buffer locations references)
-       (funcall func text-buffer locations references)))))
+(defun lar--live-text-buffer-use (func)
+  "Define how to build function defined on LiveTextBuffer.
+FUNC takes the live-text-buffer's text-buffer, locations and references as input."
+  (lambda (live-text-buffer)
+    (pcase live-text-buffer
+      ((and `(,tag ,text-buffer ,locations ,references) (guard (eq tag lar--live-text-buffer-tag)))
+       (funcall func text-buffer locations references))
+      (_ (error "Variable live-text-buffer is not a LiveTextBuffer")))))
+
+(defvar lar--timer nil
+  "Record the last time the buffer has been modified.")
+(put 'lar--timer 'permanent-local t)
+
+(defun lar--membrane (message)
+  "Handle MESSAGE sent from Emacs.
+
+If MESSAGE matches:
+  `init, then: all buffers of Emacs are made LiveTextBuffer if possible.
+  (list `created buffer), then: buffer is made a LiveTextBuffer.
+  (list `mutated buffer), then: buffer is made a LiveTextBuffer."
+
+  (pcase message
+    (`(,symbol ,buffer)
+     (let ((text-buffer (lar--text-buffer buffer)))
+       (when (lar--text-buffer-p text-buffer)
+         (with-current-buffer buffer
+           (pcase symbol
+             ('mutated
+              (when lar--timer (cancel-timer lar--timer))
+              (setq-local lar--timer (run-with-idle-timer 1 nil (lambda () (lar--membrane `(created ,buffer))))))
+             ('created
+              (lar--live-text-buffer text-buffer)
+              (setq-local lar--timer nil)))))))
+    ('init
+     (dolist (buffer (buffer-list))
+       (lar--membrane `(created ,buffer))))))
 
 (defun lar--activate ()
-  "Activate the locs-and-refs mechanism by initializing and setting up event handlers."
+  "Make Emacs turn all its buffers into LiveTextBuffer, if possible."
   (lar--check-ripgrep)
   (lar--membrane 'init)
   (add-hook 'after-change-major-mode-hook #'lar--created)
@@ -348,7 +408,7 @@ Make the interval clickable to search for matching references."
   (lar--membrane `(mutated ,(current-buffer))))
 
 (defun lar--deactivate ()
-  "Deactivate the locs-and-refs mechanism by removing hooks and cleaning up timers."
+  "Deactivate the locs-and-refs mechanism."
   (remove-hook 'after-change-major-mode-hook #'lar--created)
   (remove-hook 'after-change-functions #'lar--mutated)
   (dolist (buffer (buffer-list))
@@ -357,33 +417,12 @@ Make the interval clickable to search for matching references."
             (cancel-timer lar--timer)
             (kill-local-variable 'lar--timer)))))
 
-(defvar lar--timer nil
-  "Record the last time the buffer has been modified.")
-(put 'lar--timer 'permanent-local t)
-
-(defun lar--membrane (message)
-  "Handle MESSAGE for buffer activation or mutation."
-  (pcase message
-    (`(,symbol ,buffer)
-     (let ((text-buffer (lar--TextBuffer-mk buffer)))
-       (when (lar--TextBuffer-p text-buffer)
-         (with-current-buffer buffer
-           (pcase symbol
-             ('mutated
-              (when lar--timer (cancel-timer lar--timer))
-              (setq-local lar--timer (run-with-idle-timer 1 nil (lambda () (lar--membrane `(created ,buffer))))))
-             ('created
-              (lar--LiveTextBuffer-mk text-buffer '() '())
-              (setq-local lar--timer nil)))))))
-    ('init
-     (dolist (buffer (buffer-list))
-       (lar--membrane `(created ,buffer))))))
-
 (defun lar--check-ripgrep ()
   "Check for the presence of ripgrep, else: signal the user."
   (unless (executable-find "rg")
     (user-error "Ripgrep (rg) is not installed. Please install it to use this package")))
 
+;;;###autoload
 (define-minor-mode locs-and-refs-mode
   "Minor mode for locs-and-refs package."
   :init-value nil
