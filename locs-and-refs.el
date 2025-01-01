@@ -3,9 +3,9 @@
 ;; Copyright (C) 2024 Pierre-Henry FRÖHRING
 
 ;; Author: Pierre-Henry FRÖHRING <contact@phfrohring.com>
-;; Package-Version: 0.3
+;; Package-Version: 0.4
 ;; Package-Requires: ((emacs "27.1"))
-;; URL: https://github.com/your-username/your-package
+;; URL: https://github.com/phf-1/locs-and-refs
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
