@@ -3,7 +3,7 @@
 ;; Copyright (C) 2024 Pierre-Henry FRÖHRING
 
 ;; Author: Pierre-Henry FRÖHRING <contact@phfrohring.com>
-;; Package-Version: 0.2
+;; Package-Version: 0.3
 ;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/your-username/your-package
 
@@ -266,7 +266,7 @@ FUNC is a function that takes the text-buffer's buffer as input."
     matches))
 
 (defmacro lar--bookmark-rx (bookmark-type)
-  "Define a `rx' named lar--<BOOKMARK-TYPE>-rx."
+  "Define a `rx' named lar--BOOKMARK-TYPE-rx."
   `(rx-define ,(intern (concat "lar--" bookmark-type "-rx"))
      (seq ,(concat "(" bookmark-type) (1+ " ") (group lar--uuid-rx) ")")))
 
