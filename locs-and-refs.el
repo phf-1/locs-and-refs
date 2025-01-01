@@ -3,7 +3,7 @@
 ;; Copyright (C) 2024 Pierre-Henry FRÖHRING
 
 ;; Author: Pierre-Henry FRÖHRING <contact@phfrohring.com>
-;; Package-Version: 0.4
+;; Package-Version: 0.5
 ;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/phf-1/locs-and-refs
 
@@ -50,6 +50,7 @@ FUNC is a function that takes the error message as an input."
     (pcase err
       ((and `(,tag ,msg) (guard (eq tag lar--error-tag)))
        (funcall func msg))
+      (:core func)
       (_ (error "Variable err is not an Error")))))
 
 (defun lar--error-message (err)
@@ -90,6 +91,7 @@ FUNC takes the message of the arror as input."
     (pcase interval
       ((and `(,tag ,buffer ,start ,end) (guard (eq tag lar--interval-tag)))
        (funcall func buffer start end))
+      (:core func)
       (_ (error "Variable interval is not an Interval")))))
 
 (defun lar--interval-buffer (interval)
@@ -180,6 +182,7 @@ FUNC is a function that takes the text-buffer's buffer as input."
     (pcase text-buffer
       ((and `(,tag ,buffer) (guard (eq tag lar--text-buffer-tag)))
        (funcall func buffer))
+      (:core func)
       (_ (error "Variable text-buffer is not a TextBuffer")))))
 
 (defun lar--text-buffer-buffer (text-buffer)
@@ -265,15 +268,40 @@ FUNC is a function that takes the text-buffer's buffer as input."
         (forward-line 1)))
     matches))
 
-(defmacro lar--bookmark-rx (bookmark-type)
-  "Define a `rx' named lar--BOOKMARK-TYPE-rx."
-  `(rx-define ,(intern (concat "lar--" bookmark-type "-rx"))
-     (seq ,(concat "(" bookmark-type) (1+ " ") (group lar--uuid-rx) ")")))
+;; TODO (loc 23b15a13-5c26-4af6-ad57-117723fe03c7)
+;;
+;;   lar--bookmark* are macro definitions used to define locations and references.
+;;   These macros capture what is common about locations and references since
+;;   structures of locations and references are almost identical. There might be a
+;;   way to build locations; then references from locations, re-using common
+;;   structures. For instance:
+;;
+;;   given:
+;;     f : Location → C
+;;
+;;   we have:
+;;     f ≡ loc-use φ, where φ : Interval UUID → C
+;;     φ ≡ f :core
+;;
+;;   so:
+;;     f' :≡ ref-use f :core
+;;     f' : Reference → C
+;;     f' :core ≡ f :core
+;;
+;;   then:
+;;     For all f : Location → C, we may build f' : Reference → C using identical core
+;;     functions. In other words, references may be defined re-using locations for
+;;     the most part without having to use macros.
 
-(defmacro lar--bookmark-tag (bookmark-type)
+(defmacro lar--bookmark-rx (bookmark-name)
+  "Define a `rx' named lar--BOOKMARK-TYPE-rx."
+  `(rx-define ,(intern (concat "lar--" bookmark-name "-rx"))
+     (seq ,(concat "(" bookmark-name) (1+ " ") (group lar--uuid-rx) ")")))
+
+(defmacro lar--bookmark-tag (bookmark-name)
   "Define the tag associated with the type named BOOKMARK-TYPE."
-  `(defconst ,(intern (concat "lar--" bookmark-type "-tag"))
-     ,(intern (concat ":" bookmark-type))))
+  `(defconst ,(intern (concat "lar--" bookmark-name "-tag"))
+     ,(intern (concat ":" bookmark-name))))
 
 (defmacro lar--bookmark (name matching-name)
   "Define a constructor for a bookmark type named NAME that matches MATCHING-NAME."
@@ -297,7 +325,9 @@ FUNC is a function that takes the text-buffer's buffer as input."
   (lambda (struct)
     (pcase struct
       ((and `(,tag ,interval ,uuid) (guard (eq tag ,(intern (concat "lar--" name "-tag")))))
-       (funcall use interval uuid))))))
+       (funcall use interval uuid))
+      (:core func)
+      (_ (error "Unexpected input"))))))
 
 (defmacro lar--bookmark-interval (name)
   "Return the interval associated with an instance of bookmark named NAME."
@@ -362,6 +392,7 @@ FUNC takes the live-text-buffer's text-buffer, locations and references as input
     (pcase live-text-buffer
       ((and `(,tag ,text-buffer ,locations ,references) (guard (eq tag lar--live-text-buffer-tag)))
        (funcall func text-buffer locations references))
+      (:core func)
       (_ (error "Variable live-text-buffer is not a LiveTextBuffer")))))
 
 (defvar lar--timer nil
