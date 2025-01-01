@@ -1,7 +1,7 @@
 #+TITLE: Locs-and-Refs for Emacs
 #+AUTHOR: Pierre-Henry FRÖHRING
 
-* Overview
+** Overview
 
 This package, *locs-and-refs*, enhances your Emacs experience by making references and locations in text buffers interactive. It aims at providing a seamless way to navigate through buffers and files by clicking on UUID-based references or locations.
 
@@ -9,51 +9,51 @@ This package, *locs-and-refs*, enhances your Emacs experience by making referenc
 - *License*: GNU General Public License v3 or later
 - *Emacs Requirement*: 27.1 or later
 
-* Features
+** Features
 
-- **Active References and Locations**: Turns strings formatted as `(ref +UUID)` or `(loc +UUID)` into clickable elements within text and programming buffers.
-- **Search Functionality**: When clicked, these active elements open a buffer displaying all matching references or locations across your filesystem and open buffers.
-- **Live Buffers**: Automatically updates references/locations when buffers are created or modified, ensuring they remain clickable.
+- *Active References and Locations*: Turns strings formatted as `(ref +UUID)` or `(loc +UUID)` into clickable elements within text and programming buffers.
+- *Search Functionality*: When clicked, these active elements open a buffer displaying all matching references or locations across your filesystem and open buffers.
+- *Live Buffers*: Automatically updates references/locations when buffers are created or modified, ensuring they remain clickable.
 
-* Installation
+** Installation
 
-1. **Manual Installation**:
+1. *Manual Installation*:
    - Download `locs-and-refs.el` from [[https://github.com/phf-1/locs-and-refs][GitHub]].
    - Place `locs-and-refs.el` in your Emacs load path.
    - Add `(require 'locs-and-refs)` to your `.emacs` or `init.el` file.
 
-2. **Using MELPA** (once available):
+2. *Using MELPA* (once available):
    - Ensure MELPA is in your package archives.
    - Use `M-x package-install RET locs-and-refs RET`.
 
-* Usage
+** Usage
 
-- **Activate**: Use `M-x locs-and-refs-mode` to toggle the mode globally. When active, it will process existing buffers and new buffers to make them "live".
+- *Activate*: Use `M-x locs-and-refs-mode` to toggle the mode globally. When active, it will process existing buffers and new buffers to make them "live".
 
-- **Interaction**:
+- *Interaction*:
   - Click on any location `(loc +UUID)` or reference `(ref +UUID)` in a buffer to see a list of all matching occurrences in both open buffers and files under $HOME.
 
-* Configuration
+** Configuration
 
 No specific configuration is required, but you can customize:
 - Ensure `ripgrep` is installed for filesystem search capabilities. The package checks for `rg` upon activation.
 
-* Known Issues
+** Known Issues
 
 - Requires `ripgrep` to be installed for file searching; if not available, an error message will be displayed.
 
-* Contributing
+** Contributing
 
 Contributions are welcome! Please check out the project on [[https://github.com/phf-1/locs-and-refs][GitHub]] for how to contribute or report issues.
 
-* License
+** License
 
 This package is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
 
-* Acknowledgements
+** Acknowledgements
 
 Thank you to the Emacs community for inspiring features like this one. 
 
-* Contact
+** Contact
 
 For questions or feedback, reach out to Pierre-Henry FRÖHRING at <contact@phfrohring.com>.
