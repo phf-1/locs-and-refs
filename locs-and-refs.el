@@ -3,7 +3,7 @@
 ;; Copyright (C) 2024 Pierre-Henry FRÖHRING
 
 ;; Author: Pierre-Henry FRÖHRING <contact@phfrohring.com>
-;; Package-Version: 0.5
+;; Package-Version: 0.6
 ;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/phf-1/locs-and-refs
 
@@ -256,7 +256,7 @@ FUNC is a function that takes the text-buffer's buffer as input."
 (defun lar--search-files (regex)
   "Search for REGEX in files under $HOME using ripgrep, returning file names and line numbers."
   (let* ((home-directory (expand-file-name "~"))
-         (command (format "rg --line-number -H '%s' %s" (regexp-quote regex) home-directory))
+         (command (format "rg --line-number -H '%s' %s" regex home-directory))
          matches)
     (with-temp-buffer
       (call-process-shell-command command nil t nil)
